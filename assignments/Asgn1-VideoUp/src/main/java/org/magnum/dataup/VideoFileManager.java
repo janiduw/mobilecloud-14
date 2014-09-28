@@ -21,10 +21,16 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.magnum.dataup.model.Video;
 
@@ -51,6 +57,34 @@ public class VideoFileManager {
 	}
 	
 	private Path targetDir_ = Paths.get("videos");
+	
+	private static final AtomicLong currentId = new AtomicLong(0L);
+
+    private Map<Long,Video> videos = new HashMap<Long, Video>();
+
+    public Video save(Video entity) {
+        checkAndSetId(entity);
+        videos.put(entity.getId(), entity);
+        return entity;
+    }
+
+    private void checkAndSetId(Video entity) {
+        if(entity.getId() == 0){
+            entity.setId(currentId.incrementAndGet());
+        }
+    }
+	
+    public List<String> videoFileList() {
+        List<String> fileNames = new ArrayList<>();
+        try (DirectoryStream<Path> directoryStream = Files.newDirectoryStream(targetDir_)) {
+            for (Path path : directoryStream) {
+                fileNames.add(path.toString());
+            }
+        } catch (IOException ex) {
+        	System.out.println(ex.getMessage());
+        }
+        return fileNames;
+    }
 	
 	// The VideoFileManager.get() method should be used
 	// to obtain an instance
@@ -112,5 +146,9 @@ public class VideoFileManager {
 		Path target = getVideoPath(v);
 		Files.copy(videoData, target, StandardCopyOption.REPLACE_EXISTING);
 	}
-	
+
+	public Map<Long,Video> getVideos() {
+		return videos;
+	}
+
 }
